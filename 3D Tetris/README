@@ -1,0 +1,218 @@
+CPSC453 - Assignment 1
+
+NAME: NIZAR MAAN
+UCID Number: 10103889
+Tutorial Section: T03
+
+Prior notes and observations:
+This assignment was made unnecessarily difficult seeing as we were taught relatively nothing pertaining to this assignment during lectures and tutorials.
+Please, I hope to see more relevant in-class content in the future.
+
+Regards,
+Nizar Maan
+
+=== 1. EXECUTION: ===
+
+To compile the program, on the terminal enter the following commands:
+
+	qmake -project QT+=widgets
+	qmake
+	make
+
+To run the program, on the terminal enter the following command:
+
+	./a1
+
+=== 2. PROGRAM USE: ===
+
+ The letters in ”()” indicate the keyboard short cut, CAPS-LOCK i.e. capitals, should still work
+
+• A File menu with the following menu items: 
+	– New Game (N): Start a new game. 
+	– Reset (R): Reset the view of the game. 
+	– Quit (Q): Exit the program. 
+
+• A Draw menu, with the following menu items: 
+	– Wireframe (W): Draw the game in wireframe mode. 
+	– Face (F): Fill in the faces of the game. Each different piece shape should have its own uniform colour. 
+	– **Multicoloured (M) Menu options for this mode are there, however, it is not implemented
+
+• A Game menu, with the following menu items: – Pause (P): Pause the game. 
+	– Speed Up (Page Up): Increase the speed of the game play. 
+	– Slow Down (Page Down): Decrease the speed of the game play. 
+	– Auto-Increase (A): Slowly and automatically increase the speed of the game play. 
+ 
+• Mouse Movements: 
+	– Mouse operations are initiated by pressing the appropriate mouse button and terminated by releasing that button. Only motion in the horizontal direction be used.
+	– The left mouse button should rotate the game around the X-axis. 
+	– The middle mouse button should rotate the game around the Y-axis. 
+	– The right mouse button should rotate the game around the Z-axis. 
+	– When the shift key is pressed, use of any mouse button will uniformly scale the game - both the board and the pieces. 
+
+	When the mouse moves to the left, the game should become smaller. When the mouse moves to the right, the game should become larger. 
+	The maximum and minimum scales should be restricted to a reasonable range.
+
+• Keyboard Input: 
+	– The left arrow key should move the currently falling piece one space to the left. 
+	– The right arrow key should move the currently falling piece one space to the right. 
+	– The up arrow key should move the currently falling piece counter-clockwise. 
+	– The down arrow key should move the currently falling piece clockwise. 
+	– The space bar should ‘drop’ the piece, sending it as far down into the well as it will go. 
+
+== 3. ALGORITHMS and DESIGN DECISIONS: ===
+
+Several design decisions were made, firstly the decision to declare the "view_matrix" variable as a member variable in Renderer.h for easier access throughout Renderer.cpp.
+The fact that view_matrix would have to be used outside of the "PaintGL()" function warranted the decision to increase the scope of "view_matrix" by making it a member variable, instead
+of declaring it only in "PaintGL()", where its scope was limited only to that function, as it was originally.
+
+I drew cubes without using VBO or VAO since I thought using those would complicate matters. The border cubes, as well as the falling pieces were drawn within PaintGL(),
+as it seems more intuitive to draw things within the PaintGL() function. "for loops" were used to create the well, three for-loops were used, one for the bottom side, and two 
+for the two lateral sides. Three nested for loops were used to perform row and column checking to draw falling objects. Use of for-loops was deemed a good design decision to avoid repetitive code.
+
+The code to generate/prepare cubes (i.e. the "generateCube()" function) for drawing was largely influenced by code obtained from the following TA and his website:
+TA Amirhessam Moltaji http://moltaji.cpsc.ucalgary.ca/Courses/pmwiki.php?n=Site.CPSC453F15
+
+The following variables declared in Renderer.h were placed in the private section since they would not be needed to be called elsewhere outside Renderer.cpp
+
+private:
+	int mode;                   
+    int prevMode;               
+    bool rotateVertical;        
+    bool rotateHorizontal;      
+    bool rotateZ;               
+    float initX;                
+    float deltaX;               
+    bool isPaused;              
+    int standardSpeed;          
+    int speedAdjustor;          
+    int currentSpeed;           
+    bool stayRotating;
+	int currentScale;
+    int maxScale;
+    int minScale;
+	QTimer *m_speedUpTimer;   
+    QTimer *m_rotationTimer;
+    QMatrix4x4 view_matrix;
+
+The following variables and functions were declared in the public section since they would be referenced in Window.cpp for menu actions and/or keyboard shortcuts:
+
+public:
+    Game * game;                
+    bool readyToScale;          
+    bool wasScaling;            
+
+public slots:
+    void faceMode();
+    void wireFrameMode();
+    void multiColorMode();  
+    void newGame();
+    void resetView();
+    void pauseGame();
+    void speedUpGame();
+    void slowDownGame();
+    void autoIncrease();
+    void keepRotating();
+	
+In Window.cpp switch cases were used in the KeyPressEvent() function to avoid redundant "if" statements.
+
+Multi-Color mode was not implemented as it proved to difficult for me to complete in the time that I had.
+
+Persistent rotation was implemented via the keepRotating() function, which had a timer attached to it, where in the case that persistant rotation should happen, it would occur within this function every
+10milliseconds until conditions were such that the game should no longer persistantly rotate.
+	*see, QTimer *m_speedUpTimer;   
+    
+Auto-Increase speed was implemented in a similar fashion to Persistent rotation. A timer was attached to it that would every 2 seconds reduce time between gameticks by 50 milliseconds,
+thus gradually speeding up the game.
+	*see QTimer *m_rotationTimer;
+
+Game ticks were implemented via a timer thanks to TA Joshua Horacsek and his tutorial slides:
+http://slides.com/joshuahoracsek/cpsc453-fall2015-tutorial5#/
+
+Slowdown and speed-up functions were implemented in the same way, see below:
+    //cap currentSpeed to X
+    if (currentSpeed - speedAdjustor </> someCap){
+        currentSpeed = currentSpeed +/- speedAdjustor;
+        this->m_pGameTimer->start(currentSpeed);
+    }
+Every time their corresponding commans were called via shortcut keys or menu action, the above function would be called that would decrease/increase milliseconds between game ticks
+
+Pause was implemented via simple if statements checking Pause = true or not and toggling the state to true/false accordingly.
+Depending on whether Pause was true or false, the game tickets would be stopped or restarted with the standard game speed of 500milliseconds per game tick.
+
+Resetting the game view was implemented by transforming the view_matrix to an identity matrix and then transforming it back to its default view:
+    view_matrix.setToIdentity();
+    view_matrix.translate(0.0f, 0.0f, -40.0f);
+
+Face and wire mode implemented via simple if-statements that would toggle when the action/command/shortcutkey was used:
+
+    if (mode == 0){
+        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+    }
+    else
+        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL);
+		
+		
+All calculations for rotations and scaling were performed within the mouse event detection functions.
+Scalars for scaling were arbitrarily chosen, and the scalar for rotations was calculated through obtaining initial mouse x coordinates
+and subtracting it from final mouse x-coordinates to obtain a deltaX, which would be used to transform the view_matrix along the corresponding axis.
+deltaX was multiplied by a scalar, 0.01f to reduce rotation speed.
+
+Several boolean checks are used within these mouse event checks to determine directions of rotation and to determine whether or not scaling should be performed.
+A boolean, readyToScale, was set to true when the shift key was pressed and back to false when it was released. This boolean was utilized to recognize the intent to scale the game.
+Persistent rotation was called within the mouseReleaseEvent function as it seemed more intuitive and easier to call it here since we want to persistently rotate after mouse release.
+Several boolean checks are used to determine whether a scaling had been done in order to persistently rotate or not, since per assignment specifications persistent rotation should not occur
+after scaling mouse movements.
+The many boolean checks are there to solve the problem that arises from being able to know and store the knowledge that a scaling was done, because the shift key and mouse button can be let-go in different orders.
+i.e. the shift key can be pressed and mouse moved to perform some scaling action, then either the shift key can be released first or the mouse button.
+
+=== 4. FILES SUBMITTED: ===
+
+The following files have been submitted within a Zipped folder:
+
+a1
+a1.pdf
+a1.pro
+a1.pro.user
+game.cpp
+game.h
+game.o
+main.cpp
+main.o 
+Makefile
+moc_renderer.cpp
+moc_renderer.o
+moc_window.cpp
+moc_window.of
+per-fragment-phong.fs.glsl
+per-fragment-phong.vs.glsl
+README.txt (i.e. this file)
+renderer.cpp
+renderer.h
+renderer.o
+window.cpp
+window.h 
+window.o 
+
+(a total of 23 items)
+
+=== 5. PROGRAM ASSUMPTIONS: ===
+
+This was program was made under the assumption that it will be seen, and its source-code evaluated/seen, only by persons familar and experienced with Qt, C++ and OpenGL libraries.
+
+=== 6. DECLARATION AND IMAGE PERMISSION: ===
+
+<Initial the following:>
+
+_NM_ I have read the regulations regarding plagarism. I affirm with my initials
+that I have worked on my own solution to this assignment, and the code I am
+submitting is my own.
+
+<Mark with an X if desired. No marks will be deducted either way>
+
+_X_ I grant the instructor and/or TAs permission to use images submitted and/or
+   assignment screenshots for future CPSC453 courses.
+
+__ If permission has been granted above, I would prefer the images to remain 
+   annonymous. <Otherwise credit will be given, as is due>
+
+__
